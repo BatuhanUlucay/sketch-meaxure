@@ -25,6 +25,18 @@ export interface SMContext {
 
 export let context: SMContext = undefined;
 
+function topLevelContainersWithSelection(page) {
+    return page.selectedLayers.reduce((prev, layer) => {
+        // Include all explicitly selected top-level containers
+        if (layer instanceof sketch.Artboard) {
+            return prev.concat(layer);
+        }
+        // Otherwise try to reach this layer's top-level container if one exists
+        // (i.e. this layer does not lay directly on the page)
+        return prev.concat(layer.getParentArtboard() ?? []);
+    }, []);
+}
+
 export function updateContext(ctx?: Context) {
     if (!ctx && !context) throw new Error("Context not initialized");
     let notInitilized = context === undefined;
@@ -48,7 +60,8 @@ export function updateContext(ctx?: Context) {
     if (document) {
         // properties always need to update
         context.page = context.document.selectedPage;
-        context.artboard = sketch.Artboard.fromNative(context.page.sketchObject.currentArtboard());
+        const currentArtboard = topLevelContainersWithSelection(context.page)[0];
+        context.artboard = sketch.Artboard.fromNative(currentArtboard);
         context.selection = context.document.selectedLayers;
         context.meaxureStyles = new MeaxureStyles(context.document);
     }
